@@ -4,16 +4,16 @@ import "errors"
 
 type (
 	DI interface {
-		// Provide - add provider in container or return error if the value can't be represented as provider.
+		// Provide - add provider in container or return error if the value can't be represented as provider
 		Provide(provider any, options ...Option) error
-		// MustProvide is like Provide but panics if method Provide return error.
+		// MustProvide is like Provide but panics if method Provide return error
 		MustProvide(provider any, options ...Option) DI
-		// Invoke - receive dependencies from container.
+		// Invoke - receive dependencies from container
 		Invoke(functions ...any) error
 		// InvokeWithDI - receive top-level dependencies using the current container,
-		// but receives their nested dependencies using the provided container.
+		// but receives their nested dependencies using the provided container
 		InvokeWithDI(di DI, functions ...any) error
-		// MustInvoke is like Invoke but panics if method Invoke return error.
+		// MustInvoke is like Invoke but panics if method Invoke return error
 		MustInvoke(functions ...any) DI
 	}
 	Option func(option)
