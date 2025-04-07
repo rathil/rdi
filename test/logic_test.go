@@ -327,6 +327,9 @@ func TestErrorAlreadyExistsSimple(t *testing.T) {
 	if !errors.Is(err, rdi.ErrDependencyAlreadyExists) {
 		t.Errorf("expected ErrDependencyAlreadyExists, got %v", err)
 	}
+	if err.Error() == "'data1', err: "+rdi.ErrDependencyAlreadyExists.Error() {
+		t.Error(err)
+	}
 }
 
 func TestErrorProviderWithoutOutputs(t *testing.T) {

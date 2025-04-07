@@ -1,7 +1,6 @@
 package standard
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 
@@ -14,5 +13,8 @@ type di struct {
 }
 
 func (a *di) errDependencyAlreadyExists(rt reflect.Type) error {
-	return fmt.Errorf("'%s' %w", rt.String(), rdi.ErrDependencyAlreadyExists)
+	return &wrapError{
+		msg: rt.String(),
+		err: rdi.ErrDependencyAlreadyExists,
+	}
 }
