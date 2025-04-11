@@ -167,7 +167,6 @@ di := standard.New().
     MustProvide(22).
     MustProvide(NewUserPoint)
 
-
 di.MustInvoke(func(data int) { /* data == 22 */ })
 
 diCopy := standard.NewWithParent(di).
