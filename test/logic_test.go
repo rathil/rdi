@@ -34,7 +34,7 @@ func TestSimple(t *testing.T) {
 	}
 }
 
-func TestSimpleOverride(t *testing.T) {
+func TestSimpleWithParent(t *testing.T) {
 	type data1 struct {
 		A int
 	}
@@ -57,6 +57,53 @@ func TestSimpleOverride(t *testing.T) {
 		}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSimpleOverride(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+	}
+	if err := standard.New().
+		MustOverride(data1{11}).
+		MustOverride(data2{22}).
+		MustOverride(data1{33}).
+		Invoke(func(d1 data1, d2 data2) {
+			if d1.A != 33 {
+				t.Errorf("got %d, want %d", d1.A, 33)
+			}
+			if d2.A != 22 {
+				t.Errorf("got %d, want %d", d2.A, 22)
+			}
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSimpleOverrideFail(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+	}
+
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Errorf("expected panic, got nil")
+		}
+		if !errors.Is(err.(error), rdi.ErrDependencyAlreadyExists) {
+			t.Errorf("expected ErrDependencyNotFound panic, got %v", err)
+		}
+	}()
+
+	standard.New().
+		MustOverride(data1{11}).
+		MustOverride(data2{22}).
+		MustProvide(data1{33})
 }
 
 func TestFunction(t *testing.T) {
@@ -85,7 +132,7 @@ func TestFunction(t *testing.T) {
 	}
 }
 
-func TestFunctionOverride(t *testing.T) {
+func TestFunctionWithParent(t *testing.T) {
 	type data1 struct {
 		A int
 	}
@@ -98,6 +145,29 @@ func TestFunctionOverride(t *testing.T) {
 			MustProvide(func() data2 { return data2{22} }),
 	).
 		MustProvide(func() data1 { return data1{33} }).
+		Invoke(func(d1 data1, d2 data2) {
+			if d1.A != 33 {
+				t.Errorf("got %d, want %d", d1.A, 33)
+			}
+			if d2.A != 22 {
+				t.Errorf("got %d, want %d", d2.A, 22)
+			}
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFunctionOverride(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+	}
+	if err := standard.New().
+		MustOverride(func() data1 { return data1{11} }).
+		MustOverride(func() data2 { return data2{22} }).
+		MustOverride(func() data1 { return data1{33} }).
 		Invoke(func(d1 data1, d2 data2) {
 			if d1.A != 33 {
 				t.Errorf("got %d, want %d", d1.A, 33)
@@ -132,7 +202,7 @@ func TestMixed(t *testing.T) {
 	}
 }
 
-func TestMixedOverride(t *testing.T) {
+func TestMixedWithParent(t *testing.T) {
 	type data1 struct {
 		A int
 	}
@@ -161,7 +231,34 @@ func TestMixedOverride(t *testing.T) {
 	}
 }
 
-func TestMixedOverrideWithNested(t *testing.T) {
+func TestMixedOverride(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+	}
+	if err := standard.New().
+		MustOverride(data1{11}).
+		MustOverride(func() data2 { return data2{22} }).
+		MustOverride(func() data1 { return data1{33} }).
+		MustOverride(func() *data2 { return &data2{44} }).
+		Invoke(func(d2p *data2, d1 data1, d2 data2) {
+			if d2p.A != 44 {
+				t.Errorf("got %d, want %d", d2p.A, 44)
+			}
+			if d1.A != 33 {
+				t.Errorf("got %d, want %d", d1.A, 33)
+			}
+			if d2.A != 22 {
+				t.Errorf("got %d, want %d", d2.A, 22)
+			}
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMixedWithParentWithNested(t *testing.T) {
 	type data1 struct {
 		A int
 	}
@@ -195,7 +292,39 @@ func TestMixedOverrideWithNested(t *testing.T) {
 	}
 }
 
-func TestMixedOverrideWithNestedGreedy(t *testing.T) {
+func TestMixedOverrideWithNested(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+		D data1
+	}
+	if err := standard.New().
+		MustOverride(data1{11}).
+		MustOverride(func(d data1) data2 {
+			return data2{
+				A: 22,
+				D: d,
+			}
+		}).
+		MustOverride(func() data1 { return data1{33} }).
+		Invoke(func(d1 data1, d2 data2) {
+			if d1.A != 33 {
+				t.Errorf("got %d, want %d", d1.A, 33)
+			}
+			if d2.A != 22 {
+				t.Errorf("got %d, want %d", d2.A, 22)
+			}
+			if d2.D.A != 33 {
+				t.Errorf("got %d, want %d", d2.D.A, 33)
+			}
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMixedWithParentWithNestedGreedy(t *testing.T) {
 	type data1 struct {
 		A int
 	}
@@ -237,7 +366,47 @@ func TestMixedOverrideWithNestedGreedy(t *testing.T) {
 	}
 }
 
-func TestMixedOverrideWithNestedDeep(t *testing.T) {
+func TestMixedOverrideWithNestedGreedy(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+		D data1
+	}
+	if err := standard.New().
+		MustOverride(data1{11}).
+		MustOverride(func(d data1) *data2 {
+			return &data2{
+				A: 22,
+				D: d,
+			}
+		}).
+		MustInvoke(func(d2 *data2) {
+			if d2.A != 22 {
+				t.Errorf("got %d, want %d", d2.A, 22)
+			}
+			if d2.D.A != 11 {
+				t.Errorf("got %d, want %d", d2.D.A, 11)
+			}
+		}).
+		MustOverride(func() data1 { return data1{33} }).
+		Invoke(func(d1 data1, d2 *data2) {
+			if d1.A != 33 {
+				t.Errorf("got %d, want %d", d1.A, 33)
+			}
+			if d2.A != 22 {
+				t.Errorf("got %d, want %d", d2.A, 22)
+			}
+			if d2.D.A != 11 {
+				t.Errorf("got %d, want %d", d2.D.A, 11)
+			}
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMixedWithParentWithNestedDeep(t *testing.T) {
 	type data1 struct {
 		A int
 	}
@@ -261,6 +430,37 @@ func TestMixedOverrideWithNestedDeep(t *testing.T) {
 			MustProvide(func(d data4) data5 { return data5{d.A} }),
 	).
 		MustProvide(func(d data2) data3 { return data3{d.A * 10} }).
+		Invoke(func(d5 data5) {
+			if d5.A != 550 {
+				t.Errorf("got %d, want %d", d5.A, 550)
+			}
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMixedOverrideWithNestedDeep(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+	}
+	type data3 struct {
+		A int
+	}
+	type data4 struct {
+		A int
+	}
+	type data5 struct {
+		A int
+	}
+	if err := standard.New().
+		MustOverride(data1{55}).
+		MustOverride(func(d data1) data2 { return data2{d.A} }).
+		MustOverride(func(d data3) data4 { return data4{d.A} }).
+		MustOverride(func(d data4) data5 { return data5{d.A} }).
+		MustOverride(func(d data2) data3 { return data3{d.A * 10} }).
 		Invoke(func(d5 data5) {
 			if d5.A != 550 {
 				t.Errorf("got %d, want %d", d5.A, 550)
@@ -454,6 +654,21 @@ func TestMustInvokePanic(t *testing.T) {
 	standard.New().
 		MustProvide(data1{11}).
 		MustInvoke(func(d data2) {})
+}
+
+func TestMustOverridePanic(t *testing.T) {
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Errorf("expected panic, got nil")
+		}
+		if !errors.Is(err.(error), rdi.ErrProviderWithoutOutputs) {
+			t.Errorf("expected ErrProviderWithoutOutputs panic, got %v", err)
+		}
+	}()
+
+	standard.New().
+		MustOverride(func() {})
 }
 
 func TestMustProvidePanic(t *testing.T) {
