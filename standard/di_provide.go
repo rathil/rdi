@@ -7,10 +7,10 @@ import (
 )
 
 func (a *di) MustProvide(
-	value any,
+	provide any,
 	options ...rdi.Option,
 ) rdi.DI {
-	if err := a.Provide(value, options...); err != nil {
+	if err := a.Provide(provide, options...); err != nil {
 		panic(err)
 	}
 	return a
