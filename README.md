@@ -1,9 +1,6 @@
 # rDI – Dependency Injection for Go 🥷
 
-<h1>
-  <img src="assets/mascot_big.png" align="right" width="200" alt="rDI Mascot">
-</h1>
-
+<img src="assets/mascot.png" align="right" width="100" alt="rDI Mascot">
 rDI is a lightweight and intuitive dependency injection container for Go. It is designed to be flexible, testable, and unobtrusive, letting you wire up your dependencies cleanly and explicitly.
 
 ## Installation
