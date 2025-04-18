@@ -44,7 +44,8 @@ func WithTransient() Option {
 var (
 	ErrDependencyAlreadyExists = errors.New("dependency is already registered")
 	ErrProviderWithoutOutputs  = errors.New("provider function has no return types")
-	ErrNilPointerProvided      = errors.New("cannot provide a nil pointer as a value")
-	ErrNotAFunction            = errors.New("expected a function, but received a non-function value for invocation")
-	ErrDependencyNotFound      = errors.New("dependency not found")
+	ErrInvalidValueProvided    = errors.New("cannot provide an invalid value")
+	ErrNilValueProvided        = errors.New("cannot provide a nil value")
+	ErrNotAFunction            = errors.New("expected a function, got a non-function value for invocation")
+	ErrDependencyNotFound      = errors.New("missing")
 )
