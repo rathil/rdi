@@ -2,6 +2,7 @@ package test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/rathil/rdi"
@@ -617,8 +618,31 @@ func TestErrorNilPointerProvided(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
-	if !errors.Is(err, rdi.ErrNilPointerProvided) {
-		t.Errorf("expected ErrNilPointerProvided, got %v", err)
+	if !errors.Is(err, rdi.ErrNilValueProvided) {
+		t.Errorf("expected ErrNilValueProvided, got %v", err)
+	}
+}
+
+func TestErrorNilPointerProvidedFn(t *testing.T) {
+	type fn func() int
+	err := standard.New().
+		Provide((fn)(nil))
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if !errors.Is(err, rdi.ErrNilValueProvided) {
+		t.Errorf("expected ErrNilValueProvided, got %v", err)
+	}
+}
+
+func TestErrorInvalidValueProvided(t *testing.T) {
+	err := standard.New().
+		Provide(nil)
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if !errors.Is(err, rdi.ErrInvalidValueProvided) {
+		t.Errorf("expected ErrInvalidValueProvided, got %v", err)
 	}
 }
 
@@ -669,6 +693,32 @@ func TestMustOverridePanic(t *testing.T) {
 
 	standard.New().
 		MustOverride(func() {})
+}
+
+func TestErrorDeep(t *testing.T) {
+	type data1 struct{ A int }
+	type data2 struct{ A int }
+	type data3 struct{ A int }
+	type data4 struct{ A int }
+
+	err := standard.New().
+		MustProvide(func(d data2) data1 { return data1{d.A} }).
+		MustProvide(func(d data3, _ data4) data2 { return data2{d.A} }).
+		MustProvide(func() data3 { return data3{11} }).
+		Invoke(func(data1) {})
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	} else {
+		msg := err.Error()
+		if !strings.Contains(msg, "required by test.data1") ||
+			!strings.Contains(msg, "required by test.data2") ||
+			!strings.Contains(msg, "test.data4") {
+			t.Errorf("not present required by")
+		}
+	}
+	if !errors.Is(err, rdi.ErrDependencyNotFound) {
+		t.Errorf("expected %v, got %v", rdi.ErrDependencyNotFound, err)
+	}
 }
 
 func TestMustProvidePanic(t *testing.T) {

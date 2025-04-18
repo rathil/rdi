@@ -8,6 +8,7 @@ import (
 )
 
 func BenchmarkStandardGet(b *testing.B) {
+	standard.SetTraceLevel(standard.TraceNone)
 	type data1 struct {
 		A int
 	}
@@ -19,6 +20,7 @@ func BenchmarkStandardGet(b *testing.B) {
 }
 
 func BenchmarkInterfaceGet(b *testing.B) {
+	standard.SetTraceLevel(standard.TraceNone)
 	type data1 struct {
 		A int
 	}

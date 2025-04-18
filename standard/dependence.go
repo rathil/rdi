@@ -15,14 +15,13 @@ type dependence struct {
 	function  reflect.Value
 	in        []reflect.Type
 	outIndex  int
+	resolve   resolveContext
 }
 
-func makeDependence(options []rdi.Option) *dependence {
-	dep := &dependence{}
+func (a *dependence) applyOptions(options []rdi.Option) {
 	for _, item := range options {
-		item(dep)
+		item(a)
 	}
-	return dep
 }
 
 func (a *dependence) SetTransient() { a.transient = true }

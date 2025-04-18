@@ -152,3 +152,66 @@ func TestMyDILastWithErrorNotFound(t *testing.T) {
 		t.Errorf("expected ErrDependencyNotFound, got %v", err)
 	}
 }
+
+func TestMyDIErrorOnInvoke(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	di := &testDi{
+		standard.New(),
+	}
+	myErr := errors.New("my invoke error")
+	err := di.
+		MustProvide(data1{}).
+		InvokeWithDI(di, func(d data1) error { return myErr })
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if !errors.Is(err, myErr) {
+		t.Errorf("expected %v, got %v", myErr, err)
+	}
+}
+
+func TestMyDIErrorInProvide(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	myErr := errors.New("my provide error")
+	di := &testDi{
+		standard.New(),
+	}
+	di.MustProvide(func() (data1, error) { return data1{11}, myErr })
+
+	err := standard.NewWithParent(di).
+		InvokeWithDI(di, func(data1) {})
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if !errors.Is(err, myErr) {
+		t.Errorf("expected %v, got %v", myErr, err)
+	}
+}
+
+func TestMyDIErrorInProvideDeep(t *testing.T) {
+	type data1 struct {
+		A int
+	}
+	type data2 struct {
+		A int
+	}
+	myErr := errors.New("my provide error")
+	di := &testDi{
+		standard.New(),
+	}
+	di.MustProvide(func() (data1, error) { return data1{11}, myErr })
+
+	err := standard.NewWithParent(di).
+		MustProvide(func(d data1) data2 { return data2{d.A} }).
+		InvokeWithDI(di, func(data2) {})
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if !errors.Is(err, myErr) {
+		t.Errorf("expected %v, got %v", myErr, err)
+	}
+}

@@ -22,13 +22,14 @@ func (a *di) InvokeWithDI(bdi rdi.DI, functions ...any) error {
 }
 
 func (a *di) invoke(bdi rdi.DI, functions ...any) error {
-	// TODO rathil add file and line to err?
-	for _, function := range functions {
-		params, err := a.resolveDependencies(bdi, function)
+	resolve := makeResolveContext(3)
+	for i, fn := range functions {
+		resolve.invokeFunctionIndex = i + 1
+		params, err := a.resolveDependencies(bdi, fn, resolve)
 		if err != nil {
 			return err
 		}
-		if _, err = a.callFunction(reflect.ValueOf(function), params); err != nil {
+		if _, err = a.callFunction(reflect.ValueOf(fn), params); err != nil {
 			return err
 		}
 	}
@@ -37,16 +38,19 @@ func (a *di) invoke(bdi rdi.DI, functions ...any) error {
 
 func (a *di) resolveDependencies(
 	bdi rdi.DI,
-	function any,
+	fn any,
+	resolve resolveContext,
 ) ([]reflect.Value, error) {
-	rt := reflect.TypeOf(function)
+	rt := reflect.TypeOf(fn)
 	if rt == nil || rt.Kind() != reflect.Func {
-		return nil, rdi.ErrNotAFunction
+		return nil, resolve.wrapError(rdi.ErrNotAFunction)
 	}
 	numIn := rt.NumIn()
 	params := make([]reflect.Value, numIn)
 	for i := range numIn {
-		param, err := a.resolveDependence(bdi, rt.In(i))
+		resolve.dep = rt.In(i)
+		resolve.invokeFunctionParamIndex = i + 1
+		param, err := a.resolveDependence(bdi, resolve)
 		if err != nil {
 			return nil, err
 		}
@@ -57,34 +61,37 @@ func (a *di) resolveDependencies(
 
 func (a *di) resolveDependence(
 	bdi rdi.DI,
-	rt reflect.Type,
+	resolve resolveContext,
 ) (res_ reflect.Value, _ error) {
-	if item, found := a.storage.Load(rt); found {
-		return a.getDependence(bdi, item.(*dependence))
+	if item, found := a.storage.Load(resolve.dep); found {
+		return a.getDependence(bdi, item.(*dependence), resolve)
 	}
 	if a.parent == nil {
-		return res_, rdi.ErrDependencyNotFound
+		return res_, resolve.wrapError(rdi.ErrDependencyNotFound)
 	}
 	if parent, ok := a.parent.(*di); ok {
-		return parent.resolveDependence(bdi, rt)
+		return parent.resolveDependence(bdi, resolve)
 	}
 	var result reflect.Value
-	err := a.parent.InvokeWithDI(
+	if err := a.parent.InvokeWithDI(
 		bdi,
 		reflect.MakeFunc(
-			reflect.FuncOf([]reflect.Type{rt}, []reflect.Type{}, false),
+			reflect.FuncOf([]reflect.Type{resolve.dep}, []reflect.Type{}, false),
 			func(in []reflect.Value) []reflect.Value {
 				result = in[0]
 				return nil
 			},
 		).Interface(),
-	)
-	return result, err
+	); err != nil {
+		return res_, resolve.wrapError(err)
+	}
+	return result, nil
 }
 
 func (a *di) getDependence(
 	bdi rdi.DI,
 	dep *dependence,
+	resolve resolveContext,
 ) (res_ reflect.Value, _ error) {
 	if value := dep.cache.Load(); value != nil {
 		return *value, nil
@@ -96,8 +103,7 @@ func (a *di) getDependence(
 			return *value, nil
 		}
 	}
-
-	params, err := a.getDependenceParams(bdi, dep.in)
+	params, err := a.getDependenceParams(bdi, dep, resolve)
 	if err != nil {
 		return res_, err
 	}
@@ -114,12 +120,17 @@ func (a *di) getDependence(
 
 func (a *di) getDependenceParams(
 	bdi rdi.DI,
-	params []reflect.Type,
+	dep *dependence,
+	resolve resolveContext,
 ) ([]reflect.Value, error) {
 	if d, ok := bdi.(*di); ok {
-		result := make([]reflect.Value, len(params))
-		for i, param := range params {
-			item, err := d.resolveDependence(bdi, param)
+		depResolve := dep.resolve
+		depResolve.prev = &resolve
+		result := make([]reflect.Value, len(dep.in))
+		for i, param := range dep.in {
+			depResolve.dep = param
+			depResolve.invokeFunctionParamIndex = i + 1
+			item, err := d.resolveDependence(bdi, depResolve)
 			if err != nil {
 				return nil, err
 			}
@@ -128,17 +139,19 @@ func (a *di) getDependenceParams(
 		return result, nil
 	}
 	var result []reflect.Value
-	err := bdi.InvokeWithDI(
+	if err := bdi.InvokeWithDI(
 		bdi,
 		reflect.MakeFunc(
-			reflect.FuncOf(params, []reflect.Type{}, false),
+			reflect.FuncOf(dep.in, []reflect.Type{}, false),
 			func(out []reflect.Value) []reflect.Value {
 				result = out
 				return nil
 			},
 		).Interface(),
-	)
-	return result, err
+	); err != nil {
+		return nil, resolve.wrapError(err)
+	}
+	return result, nil
 }
 
 func (a *di) callFunction(
