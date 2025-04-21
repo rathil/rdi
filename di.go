@@ -48,4 +48,5 @@ var (
 	ErrNilValueProvided        = errors.New("cannot provide a nil value")
 	ErrNotAFunction            = errors.New("expected a function, got a non-function value for invocation")
 	ErrDependencyNotFound      = errors.New("missing")
+	ErrCyclicDependency        = errors.New("cyclic dependency detected")
 )

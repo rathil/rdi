@@ -130,6 +130,11 @@ func (a *di) getDependenceParams(
 		for i, param := range dep.in {
 			depResolve.dep = param
 			depResolve.invokeFunctionParamIndex = i + 1
+			for r := &resolve; r != nil; r = r.prev {
+				if r.dep == param {
+					return nil, depResolve.wrapError(rdi.ErrCyclicDependency)
+				}
+			}
 			item, err := d.resolveDependence(bdi, depResolve)
 			if err != nil {
 				return nil, err
