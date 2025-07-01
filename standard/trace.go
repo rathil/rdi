@@ -25,3 +25,13 @@ func SetTraceLevel(level TraceLevel) {
 }
 
 var traceLevel atomic.Uint32
+
+// SetTraceNesting sets the global trace nesting index to indicate
+// the depth of event origin within nested trace contexts.
+// This should only be set when wrapping the DI manually.
+// If using the default DI flow, calling this function is not required.
+func SetTraceNesting(nesting int) {
+	traceNesting.Store(uint32(nesting))
+}
+
+var traceNesting atomic.Uint32

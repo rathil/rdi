@@ -11,7 +11,7 @@ func makeResolveContext(skip int) resolveContext {
 	if tl == TraceNone {
 		return resolve
 	}
-	if pc, file, line, ok := runtime.Caller(skip); ok {
+	if pc, file, line, ok := runtime.Caller(skip + int(traceNesting.Load())); ok {
 		resolve.file = file
 		resolve.fileLine = line
 		if tl == TraceFunctionName {
