@@ -132,6 +132,44 @@ di.
     })
 ```
 
+### Auto-initializing structs with Wire
+
+`Wire[T]` asks the container to create `T` and fill its fields from registered
+dependencies. It is useful when you want to receive a fully initialized struct
+without registering a constructor for that struct.
+
+`T` can be either a struct type or a pointer to a struct type. Fields tagged
+with `di:"-"` are skipped.
+
+```go
+type Config struct {
+    Name string
+}
+type App struct {
+    Config Config
+    Port   int
+    Secret string `di:"-"`
+}
+
+di := standard.New().
+    MustProvide(Config{Name: "example"}).
+    MustProvide(8080)
+
+di.MustInvoke(func (app rdi.Wire[App]) {
+    fmt.Println(app.Value.Config.Name) // example
+    fmt.Println(app.Value.Port) // 8080
+    fmt.Println(app.Value.Secret) // empty, skipped by tag di:"-"
+})
+```
+
+If you need a pointer, use Wire[*T]:
+
+```go
+di.MustInvoke(func(app rdi.Wire[*App]) {
+    app.Value.Port = 9090
+})
+```
+
 ### Provider Options
 
 By default, providers are singleton and cached after first creation:
@@ -177,7 +215,6 @@ err := diCopy.Invoke(func(device *Device) {
     // ...
 })
 // err == sameErrorDevice if input int is > 5
-
 
 diCopyOfCopy := standard.NewWithParent(diCopy).
     MustProvide(3)
