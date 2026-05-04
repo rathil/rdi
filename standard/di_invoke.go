@@ -63,6 +63,9 @@ func (a *di) resolveDependence(
 	bdi rdi.DI,
 	resolve resolveContext,
 ) (res_ reflect.Value, _ error) {
+	if value, ok, err := a.resolveWire(bdi, resolve); err != nil || ok {
+		return value, err
+	}
 	if item, found := a.storage.Load(resolve.dep); found {
 		return a.getDependence(bdi, item.(*dependence), resolve)
 	}

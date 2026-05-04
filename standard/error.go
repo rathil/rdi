@@ -1,6 +1,7 @@
 package standard
 
 import (
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -13,6 +14,7 @@ type Error struct {
 	InvokeFunctionIndex      int
 	InvokeFunctionParamIndex int
 	Dependence               string
+	WireField                *reflect.StructField
 	RequiredBy               []Error
 }
 
@@ -31,6 +33,16 @@ func (a *Error) error(msg *strings.Builder) {
 			msg.WriteRune(' ')
 		}
 		msg.WriteString(a.Dependence)
+	}
+	if a.WireField != nil {
+		if msg.Len() > 0 {
+			msg.WriteRune(' ')
+		}
+		msg.WriteString("(wire #")
+		msg.WriteString(strconv.Itoa(a.WireField.Index[0]))
+		msg.WriteString(" ")
+		msg.WriteString(strconv.Quote(a.WireField.Name))
+		msg.WriteString(")")
 	}
 	if a.InvokeFunctionParamIndex > 0 {
 		if msg.Len() > 0 {

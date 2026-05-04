@@ -31,6 +31,7 @@ type resolveContext struct {
 	function                 string
 	invokeFunctionIndex      int
 	invokeFunctionParamIndex int
+	wireField                *reflect.StructField
 }
 
 func (a resolveContext) wrapError(parent error) *Error {
@@ -49,6 +50,7 @@ func (a resolveContext) makeError() Error {
 		Function:                 a.function,
 		InvokeFunctionIndex:      a.invokeFunctionIndex,
 		InvokeFunctionParamIndex: a.invokeFunctionParamIndex,
+		WireField:                a.wireField,
 	}
 	if a.dep != nil {
 		err.Dependence = a.dep.String()

@@ -49,4 +49,5 @@ var (
 	ErrNotAFunction            = errors.New("expected a function, got a non-function value for invocation")
 	ErrDependencyNotFound      = errors.New("missing")
 	ErrCyclicDependency        = errors.New("cyclic dependency detected")
+	ErrWireValueNotStruct      = errors.New("wire value must be a struct or pointer to struct")
 )
